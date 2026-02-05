@@ -1,0 +1,44 @@
+name: Vendor Analysis
+
+on:
+  workflow_dispatch:
+
+jobs:
+  vendor_analysis:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y simg2img
+
+      - name: Download AP firmware
+        run: bash scripts/download_ap.sh
+
+      - name: Extract vendor.img
+        run: |
+          mkdir -p firmware/extracted
+          tar -xf firmware/AP_A057F.tar.md5 -C firmware/extracted
+          simg2img firmware/extracted/vendor.img firmware/vendor.raw.img
+          mkdir -p vendor_mount
+          sudo mount -o loop firmware/vendor.raw.img vendor_mount
+
+      - name: Analyze vendor
+        run: |
+          echo "== Android version =="
+          grep ro.vendor.build.version.release vendor_mount/build.prop || true
+          echo "== VNDK =="
+          grep ro.vndk.version vendor_mount/build.prop || true
+          echo "== HAL manifest =="
+          ls vendor_mount/etc/vintf/
+          cat vendor_mount/etc/vintf/manifest.xml || true
+          echo "== Graphics libs =="
+          ls vendor_mount/lib64/egl || true
+          ls vendor_mount/lib64/hw | grep -E "gralloc|hwcomposer" || true
+          echo "== Camera libs =="
+          ls vendor_mount/lib64/camera || true
+          ls vendor_mount/etc/camera || true
+          echo "== SELinux policy =="
+          ls vendor_mount/etc/selinux || true
+          echo "== Vendor analysis complete =="

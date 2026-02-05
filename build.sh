@@ -1,36 +1,42 @@
 #!/bin/bash
 set -e
 
-echo "=== LineageOS Port | Phase 2 ==="
+echo "=== LineageOS Port | Phase 3 (Samsung A05s) ==="
 
-mkdir -p work out mnt
+# Load device config
+source device/a05s/device.conf
+
+echo "Target device: $DEVICE_NAME"
+echo "Brand: $BRAND"
+echo "Arch: $ARCH"
+echo "Partition scheme: $PARTITION_SCHEME"
+echo "SoC: $SOC"
+
+mkdir -p work mnt
 cd work
 
-# Download GSI if not present
+# Download GSI if missing
 if [ ! -f system.img ]; then
-  echo "[1/5] Downloading LineageOS GSI..."
-  wget -q --show-progress \
+  echo "[1/4] Downloading LineageOS GSI..."
+  wget -q \
   https://github.com/phhusson/treble_experimentations/releases/download/v414/system-squeak-arm64-ab-gapps.img.xz
 
-  echo "[2/5] Extracting GSI..."
+  echo "[2/4] Extracting..."
   xz -d system-squeak-arm64-ab-gapps.img.xz
   mv system-squeak-arm64-ab-gapps.img system.img
 fi
 
-echo "[3/5] Image info:"
-file system.img
-ls -lh system.img
-
-echo "[4/5] Mounting system image (read-only)..."
+echo "[3/4] Mounting system.img (read-only)"
 sudo mount -o ro system.img ../mnt
 
-echo "[5/5] Inspecting /system:"
-ls ../mnt | head -n 20
+echo "[4/4] Checking compatibility..."
 
-echo "Build fingerprint:"
-cat ../mnt/build.prop | grep ro.build.fingerprint || true
+SYSTEM_ARCH=$(grep ro.product.cpu.abi ../mnt/build.prop | head -n1)
+SYSTEM_DEVICE=$(grep ro.product.device ../mnt/build.prop | head -n1)
 
-echo "Unmounting..."
+echo "GSI ABI  : $SYSTEM_ARCH"
+echo "GSI Device tag: $SYSTEM_DEVICE"
+
 sudo umount ../mnt
 
-echo "=== Phase 2 completed successfully ==="
+echo "=== Phase 3 completed successfully ==="
